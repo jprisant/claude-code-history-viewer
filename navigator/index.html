@@ -330,7 +330,7 @@ kbd { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--borde
 
     <article class="opt rec">
       <div class="opt-head"><span class="opt-letter">A</span><h3>Turn outline</h3><span class="badge">Recommended</span></div>
-      <p class="pitch">Each prompt becomes a collapsible turn. The turn header counts what followed it: replies, tool calls, agents started, and agent updates. With "Prompts only" on, the panel becomes a pure outline.</p>
+      <p class="pitch">Each prompt becomes a collapsible turn. The turn header counts what followed it: replies, tool calls, agents started, and agent updates. Click a turn to open or close it. "Prompts only" closes every turn, and any turn still opens with a click.</p>
       <div class="nav" data-mock-root="A"></div>
       <dl class="notes">
         <dt>Good at</dt><dd>It is a true outline of the session. All turns fit on one screen when closed, and agent updates fold into one row per task. The header stays pinned while you scroll inside a long turn.</dd>
@@ -667,7 +667,7 @@ function renderA(m) {
     const start = t.prompt || ev[0];
     const end = ev.length ? ev[ev.length - 1] : start;
     const ran = end.date - start.date;
-    const isOpen = openTurns.has(t.n) && !state.promptsOnly;
+    const isOpen = openTurns.has(t.n);
     const kids = isOpen ? turnChildren(t).map((c) => kidRow(c, m)).join("") : "";
     const headActive = t.prompt && active[m] === t.prompt.id ? " active" : "";
     const title = t.prompt
@@ -683,9 +683,7 @@ function renderA(m) {
       <div class="kids">${kids}</div>
     </div>`;
   }).join("");
-  const btns = state.promptsOnly
-    ? `<span class="count" style="margin-left:4px">outline only</span>`
-    : `<button class="mini-btn" data-a-all="open">Open all</button><button class="mini-btn" data-a-all="close">Close all</button>`;
+  const btns = `<button class="mini-btn" data-a-all="open">Open all</button><button class="mini-btn" data-a-all="close">Close all</button>`;
   return navHead("Messages", `${TURN_TOTAL} prompts`, btns) + fakeFilter + `<div class="nav-body">${html}</div>`;
 }
 
@@ -787,6 +785,8 @@ document.addEventListener("click", (ev) => {
     const key = sw.dataset.toggle;
     state[key] = !state[key];
     sw.setAttribute("aria-pressed", String(state[key]));
+    // In the outline, "Prompts only" means every turn closed; each turn still opens on click.
+    if (key === "promptsOnly" && state.promptsOnly) openTurns.clear();
     renderAll(true);
     return;
   }
@@ -812,7 +812,7 @@ document.addEventListener("click", (ev) => {
   if (row) {
     const m = row.dataset.mock;
     active[m] = Number(row.dataset.id);
-    if (row.dataset.turn !== undefined && !state.promptsOnly) {
+    if (row.dataset.turn !== undefined) {
       const n = Number(row.dataset.turn);
       openTurns.has(n) ? openTurns.delete(n) : openTurns.add(n);
     }
