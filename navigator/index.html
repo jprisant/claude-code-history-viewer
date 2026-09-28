@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messages Panel Ideas</title>
+<style>
+:root {
+  color-scheme: dark;
+  /* Dark-theme values copied from src/index.css (.dark block). */
+  --bg: oklch(0.12 0.015 260);
+  --panel: oklch(0.1 0.015 260);
+  --card: oklch(0.155 0.015 260);
+  --card-2: oklch(0.19 0.015 260);
+  --fg: oklch(0.93 0.01 240);
+  --muted: oklch(0.78 0.02 240);
+  --dim: oklch(0.62 0.02 250);
+  --border: oklch(0.25 0.015 260);
+  --accent: oklch(0.72 0.14 250);
+  --you: oklch(0.75 0.16 240);      /* --info */
+  --claude: oklch(0.82 0.16 75);    /* --warning */
+  --agent: oklch(0.82 0.16 55);     /* --tool-task */
+  --away: oklch(0.78 0.14 310);     /* --tool-mcp */
+  --tool: oklch(0.70 0.02 250);     /* --tool-terminal */
+  --skill: oklch(0.72 0.02 260);    /* --tool-system */
+  --good: oklch(0.78 0.14 160);     /* --tool-file */
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); }
+body { font-size: 15px; line-height: 1.55; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: 0.86em; background: var(--card-2); padding: 1px 5px; border-radius: 4px; }
+.wrap { max-width: 1480px; margin: 0 auto; padding: 0 24px 80px; }
+@media (max-width: 640px) { .wrap { padding: 0 16px 60px; } }
+
+/* ---------- page header ---------- */
+.hero { padding: 40px 0 8px; max-width: 900px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+h1 { font-size: 30px; line-height: 1.2; margin: 6px 0 14px; }
+.lede { font-size: 18px; color: var(--fg); margin: 0 0 12px; }
+.lede strong { color: var(--you); }
+.hero p { color: var(--muted); margin: 0 0 10px; }
+.source { font-size: 13px; color: var(--dim); }
+
+h2 { font-size: 21px; margin: 48px 0 6px; }
+h2 + p { margin-top: 0; }
+section > p, .intro { color: var(--muted); max-width: 900px; }
+
+/* ---------- sticky controls ---------- */
+.controls {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 10px 0; margin-top: 18px;
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+}
+.controls .label { font-size: 13px; color: var(--dim); }
+.switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border); color: var(--muted);
+  border-radius: 999px; padding: 5px 12px 5px 6px; font: inherit; font-size: 13px; cursor: pointer;
+}
+.switch .knob { width: 28px; height: 16px; border-radius: 99px; background: var(--card-2); position: relative; transition: background .15s; }
+.switch .knob::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--dim); transition: transform .15s, background .15s; }
+.switch[aria-pressed="true"] { color: var(--fg); border-color: color-mix(in oklch, var(--accent) 50%, var(--border)); }
+.switch[aria-pressed="true"] .knob { background: color-mix(in oklch, var(--accent) 45%, transparent); }
+.switch[aria-pressed="true"] .knob::after { transform: translateX(12px); background: var(--fg); }
+.switch .ic { width: 14px; height: 14px; }
+.controls .hint { font-size: 12px; color: var(--dim); }
+
+/* ---------- today layout ---------- */
+.today { display: grid; grid-template-columns: 330px 1fr; gap: 28px; align-items: start; margin-top: 16px; }
+@media (max-width: 900px) { .today { grid-template-columns: 1fr; } }
+.findings { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.findings li { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--muted); }
+.findings li b { color: var(--fg); display: block; margin-bottom: 2px; }
+.conf { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .03em; padding: 0 7px; border-radius: 99px; margin-left: 4px; vertical-align: 1px; }
+.conf.high { background: color-mix(in oklch, var(--good) 20%, transparent); color: var(--good); }
+.conf.med { background: color-mix(in oklch, var(--claude) 18%, transparent); color: var(--claude); }
+.conf.low { background: color-mix(in oklch, var(--away) 18%, transparent); color: var(--away); }
+
+/* ---------- kinds table ---------- */
+.table-wrap { overflow-x: auto; margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; color: var(--dim); font-weight: 600; background: var(--card); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td .kindcell { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
+td .muted { color: var(--dim); }
+
+/* ---------- option cards ---------- */
+.options { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 22px; margin-top: 18px; }
+.opt { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.opt.rec { border-color: color-mix(in oklch, var(--you) 55%, var(--border)); box-shadow: 0 0 0 1px color-mix(in oklch, var(--you) 25%, transparent); }
+.opt-head { display: flex; align-items: center; gap: 10px; }
+.opt-letter { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; background: var(--card-2); color: var(--fg); flex-shrink: 0; }
+.opt h3 { margin: 0; font-size: 17px; }
+.badge { font-size: 11px; font-weight: 700; color: var(--you); background: color-mix(in oklch, var(--you) 16%, transparent); border-radius: 99px; padding: 1px 8px; margin-left: auto; white-space: nowrap; }
+.pitch { margin: 0; color: var(--muted); font-size: 14px; }
+.notes { margin: 0; font-size: 13.5px; display: grid; gap: 8px; }
+.notes dt { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.notes dd { margin: 0; color: var(--muted); }
+
+/* ---------- navigator mock (shared) ---------- */
+.nav { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; height: 560px; display: flex; flex-direction: column; overflow: hidden; font-size: 12px; line-height: 1.45; }
+.nav.short { height: auto; }
+.nav-head { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.nav-head .title { font-weight: 600; flex: 1; font-size: 12px; }
+.nav-head .count { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11px; }
+.nav-head .tb { width: 20px; height: 20px; border-radius: 4px; display: grid; place-items: center; color: var(--muted); }
+.nav-head .tb.on-you { background: color-mix(in oklch, var(--you) 22%, transparent); color: var(--you); }
+.nav-head .tb.on-agent { background: color-mix(in oklch, var(--agent) 22%, transparent); color: var(--agent); }
+.nav-head .mini-btn { font: inherit; font-size: 11px; color: var(--muted); background: var(--card-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 7px; cursor: pointer; }
+.nav-head .mini-btn:hover { color: var(--fg); }
+.nav-filter { padding: 6px 8px; border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent); flex-shrink: 0; }
+.nav-filter div { display: flex; align-items: center; gap: 6px; background: color-mix(in oklch, var(--card-2) 50%, transparent); border: 1px solid color-mix(in oklch, var(--border) 60%, transparent); border-radius: 5px; padding: 3px 8px; color: color-mix(in oklch, var(--muted) 50%, transparent); font-size: 11.5px; }
+.nav-body { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: thin; scrollbar-color: var(--card-2) transparent; }
+.ic { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.ic-xs { width: 10px; height: 10px; }
+.dim { color: var(--dim); }
+.mono { font-family: var(--mono); font-size: 11px; }
+
+.row { display: block; width: 100%; text-align: left; padding: 7px 10px; border: 0; border-left: 2px solid transparent; background: none; color: inherit; font: inherit; cursor: pointer; }
+.row:hover { background: color-mix(in oklch, var(--accent) 9%, transparent); }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row.active { border-left-color: var(--accent); background: color-mix(in oklch, var(--accent) 7%, transparent); }
+.row-top { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.row-top time { margin-left: auto; color: var(--dim); white-space: nowrap; }
+.row p { margin: 2px 0 0; color: color-mix(in oklch, var(--fg) 82%, transparent); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.d-you { background: var(--you); } .d-claude { background: var(--claude); } .d-sys { background: var(--dim); }
+
+/* kind colors */
+.k-prompt { --k: var(--you); } .k-command { --k: var(--you); }
+.k-reply { --k: var(--claude); } .k-tools { --k: var(--tool); }
+.k-launch { --k: var(--agent); } .k-notification { --k: var(--agent); }
+.k-skill { --k: var(--skill); } .k-away { --k: var(--away); } .k-compact { --k: var(--away); }
+.kc { color: var(--k); }
+
+/* Option B: glyph rows */
+.gl .row-top .ic { color: var(--k); }
+.gl .row-top .klabel { color: var(--k); font-weight: 600; }
+.gl.k-prompt { background: color-mix(in oklch, var(--you) 6%, transparent); }
+.gl.k-prompt p { color: var(--fg); font-weight: 500; }
+.gl.k-command p { font-family: var(--mono); font-size: 11px; }
+.gl.k-command .row-top .ic { color: var(--you); }
+.gl.k-skill p, .gl.k-tools p { color: var(--dim); }
+.gl.k-skill p { font-style: italic; }
+.gl.k-notification p .status { color: var(--good); }
+.gl.k-reply p { color: color-mix(in oklch, var(--fg) 70%, transparent); }
+
+/* Option A: outline */
+.turn { border-bottom: 1px solid color-mix(in oklch, var(--border) 70%, transparent); }
+.turn-head { position: sticky; top: 0; z-index: 2; display: block; width: 100%; text-align: left; padding: 8px 10px 8px 8px; border: 0; border-left: 2px solid transparent; background: var(--panel); color: inherit; font: inherit; cursor: pointer; }
+.turn-head:hover { background: color-mix(in oklch, var(--accent) 8%, var(--panel)); }
+.turn-head.active { border-left-color: var(--accent); }
+.turn-head .l1 { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.turn-head .l1 .tn { color: var(--you); font-weight: 700; }
+.turn-head .l1 time { margin-left: auto; color: var(--dim); }
+.turn-head .chev { transition: transform .15s; color: var(--dim); }
+.turn.open .turn-head .chev { transform: rotate(90deg); }
+.turn-head .txt { margin: 3px 0 5px 19px; color: var(--fg); font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.turn-head.pre .txt { color: var(--muted); font-weight: 400; font-style: italic; }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-left: 19px; align-items: center; }
+.stat { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; padding: 0 6px; border-radius: 99px; background: color-mix(in oklch, var(--k) 13%, transparent); color: var(--k); font-variant-numeric: tabular-nums; }
+.stat .ic { width: 10px; height: 10px; }
+.stats .ran { font-size: 10.5px; color: var(--dim); margin-left: 2px; }
+.kids { display: none; padding: 0 0 6px 0; }
+.turn.open .kids { display: block; }
+.kid { display: flex; gap: 7px; width: 100%; text-align: left; padding: 5px 10px 5px 29px; border: 0; border-left: 2px solid transparent; background: none; color: inherit; font: inherit; cursor: pointer; position: relative; }
+.kid::before { content: ""; position: absolute; left: 14px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.kid:hover { background: color-mix(in oklch, var(--accent) 8%, transparent); }
+.kid.active { border-left-color: var(--accent); background: color-mix(in oklch, var(--accent) 7%, transparent); }
+.kid .ic { margin-top: 2px; color: var(--k); }
+.kid .kb { min-width: 0; flex: 1; }
+.kid .k1, .kid .k2 { display: block; }
+.kid .k1 { color: color-mix(in oklch, var(--fg) 82%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kid .k2 { color: var(--dim); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kid.k-skill .k1 { font-style: italic; color: var(--dim); }
+
+/* Option D: tiers */
+.tier-card { display: block; width: calc(100% - 12px); margin: 8px 6px 4px; text-align: left; padding: 9px 11px; border-radius: 8px; border: 1px solid color-mix(in oklch, var(--you) 35%, var(--border)); background: color-mix(in oklch, var(--you) 9%, var(--panel)); color: inherit; font: inherit; cursor: pointer; }
+.tier-card.active { outline: 2px solid var(--accent); outline-offset: -1px; }
+.tier-card .h { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--you); font-weight: 600; }
+.tier-card .h time { margin-left: auto; color: var(--dim); font-weight: 400; }
+.tier-card p { margin: 4px 0 0; font-size: 12.5px; color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tline { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 3px 10px 3px 20px; border: 0; background: none; color: var(--dim); font: inherit; font-size: 11px; cursor: pointer; border-left: 2px solid transparent; }
+.tline:hover { background: color-mix(in oklch, var(--accent) 8%, transparent); }
+.tline.active { border-left-color: var(--accent); }
+.tline .ic { color: var(--k); width: 11px; height: 11px; }
+.tline .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tline.k-reply .t { color: color-mix(in oklch, var(--fg) 62%, transparent); }
+.tline time { font-size: 10px; color: color-mix(in oklch, var(--dim) 75%, transparent); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 10px 3px 20px; }
+.chip-mini { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: color-mix(in oklch, var(--agent) 13%, transparent); color: var(--agent); border: 0; font-family: inherit; cursor: pointer; max-width: 100%; }
+.chip-mini span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.divider { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 10.5px; color: var(--dim); }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 1px dashed var(--border); }
+.divider.away { color: var(--away); }
+.divider.away::before, .divider.away::after { border-top-color: color-mix(in oklch, var(--away) 35%, transparent); }
+.away-line { display: flex; gap: 6px; width: 100%; text-align: left; padding: 4px 10px 4px 20px; border: 0; background: none; font: inherit; font-size: 11px; color: color-mix(in oklch, var(--away) 85%, var(--fg)); cursor: pointer; }
+.away-line .t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Option E: lanes */
+.lane-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10.5px; color: var(--dim); padding: 5px 10px; border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent); flex-shrink: 0; }
+.lane-legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.lane-legend .dot { width: 7px; height: 7px; }
+.lrow { display: flex; width: 100%; text-align: left; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; min-height: 30px; border-left: 2px solid transparent; }
+.lrow:hover { background: color-mix(in oklch, var(--accent) 8%, transparent); }
+.lrow.active { border-left-color: var(--accent); background: color-mix(in oklch, var(--accent) 7%, transparent); }
+.lrow.k-prompt { border-top: 1px solid color-mix(in oklch, var(--you) 30%, transparent); }
+.gut { position: relative; flex-shrink: 0; align-self: stretch; }
+.gut .lane-bg { position: absolute; top: 0; bottom: 0; width: 1px; background: color-mix(in oklch, var(--border) 80%, transparent); }
+.gut .span { position: absolute; width: 2px; margin-left: -0.5px; border-radius: 1px; }
+.gut .node { position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); margin-left: 0.5px; }
+.gut .node.big { width: 11px; height: 11px; }
+.gut .node.you { background: var(--you); box-shadow: 0 0 0 2px var(--panel); }
+.gut .node.claude { width: 5px; height: 5px; background: var(--claude); }
+.gut .node.sq { width: 5px; height: 5px; border-radius: 1px; background: var(--tool); }
+.gut .node.start { background: var(--panel); border: 2px solid; width: 9px; height: 9px; }
+.gut .node.dia { width: 7px; height: 7px; border-radius: 1px; transform: translate(-50%, -50%) rotate(45deg); background: var(--away); }
+.lbody { flex: 1; min-width: 0; padding: 5px 10px 5px 4px; }
+.lbody .row-top .klabel { font-weight: 600; }
+.lbody .l2 { color: color-mix(in oklch, var(--fg) 80%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lrow.k-prompt .l2 { color: var(--fg); font-weight: 500; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lrow.k-reply .l2, .lrow.k-tools .l2 { color: var(--dim); }
+
+/* Option C: presets */
+.seg { display: flex; gap: 2px; background: var(--card-2); border-radius: 6px; padding: 2px; margin: 8px 10px 0; }
+.seg button { flex: 1; font: inherit; font-size: 11px; border: 0; border-radius: 4px; padding: 3px 0; background: none; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .4); }
+.kchips { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px 10px 8px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.kchip { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 10.5px; padding: 1px 7px 1px 5px; border-radius: 99px; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--dim); }
+.kchip .ic { width: 10px; height: 10px; }
+.kchip b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.kchip[aria-pressed="true"] { color: var(--k); border-color: color-mix(in oklch, var(--k) 45%, transparent); background: color-mix(in oklch, var(--k) 12%, transparent); }
+
+/* ---------- extras ---------- */
+.extras { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-top: 16px; }
+.extra { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.extra h3 { margin: 0 0 6px; font-size: 16px; }
+.extra p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+.ba { display: grid; gap: 8px; }
+.ba .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--dim); text-transform: uppercase; margin-bottom: 2px; }
+.ba .nav { height: auto; }
+.extra table { font-size: 12.5px; }
+.extra td, .extra th { padding: 5px 8px; }
+.gaps { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+kbd { font-family: var(--mono); font-size: 11.5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--card-2); color: var(--fg); }
+
+/* ---------- recommendation ---------- */
+.steps { counter-reset: s; list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; max-width: 980px; }
+.steps li { counter-increment: s; position: relative; padding: 12px 16px 12px 52px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); }
+.steps li::before { content: counter(s); position: absolute; left: 14px; top: 11px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--card-2); color: var(--fg); font-weight: 700; font-size: 13px; }
+.steps li b { color: var(--fg); }
+.unknowns { color: var(--muted); max-width: 900px; padding-left: 20px; }
+.unknowns li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+  <symbol id="i-slash" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><line x1="9" x2="15" y1="15" y2="9"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m8 9 3 3-3 3"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+</svg>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Claude Code History Viewer · ideas · Messages panel</div>
+  <h1>Telling prompts apart in the Messages panel</h1>
+  <p class="lede"><strong>Recommendation:</strong> give every row in the Messages panel a kind, then add a turn outline that nests each turn under the prompt that started it (Option A below).</p>
+  <p>Today the panel colors each row by the message's stored type. The user's prompts, agent updates, slash commands, and compaction summaries are all stored as user messages, so they all get the same blue dot. In the session below, <span data-fill="notifications"></span> agent updates outnumber the <span data-fill="prompts"></span> typed prompts by more than five to one.</p>
+  <p class="source">Data: one real Claude Code session with background agents (Fri 25 Sep to Mon 28 Sep 2026, times in Pacific). Prompts, agent names, and timestamps are real; Claude's reply text and recaps are replaced with filler, and personal identifiers are removed. Row kinds are implemented in <a href="https://github.com/jhlee0409/claude-code-history-viewer/pull/600">PR #600</a>; the rest is a proposal in <a href="https://github.com/jhlee0409/claude-code-history-viewer/issues/598">issue #598</a>.</p>
+</header>
+
+<div class="controls" role="group" aria-label="Mockup controls">
+  <span class="label">Every mockup follows these switches:</span>
+  <button class="switch" data-toggle="promptsOnly" aria-pressed="true"><span class="knob"></span><svg class="ic kc k-prompt"><use href="#i-user"/></svg>Prompts only</button>
+  <button class="switch" data-toggle="showAgents" aria-pressed="true"><span class="knob"></span><svg class="ic kc k-notification"><use href="#i-zap"/></svg>Agent activity</button>
+  <span class="hint">They stand in for the person and lightning buttons in the panel header. Option C keeps its own filters.</span>
+</div>
+
+<section id="today">
+  <h2>What the panel shows today</h2>
+  <p>The panel on the left rebuilds today's Messages panel from this session, using the same rules as the current code. Row numbers are approximate because the real panel only numbers the rows it has loaded.</p>
+  <div class="today">
+    <div class="nav" data-mock-root="today"></div>
+    <ul class="findings">
+      <li><b>One dot per stored type. <span class="conf high">High</span></b><code>useNavigatorEntries.ts</code> (lines 55-58) takes each row's role straight from <code>message.type</code>. An agent update arrives as a user-type message, so it gets the blue user dot. This was read in the code and matched against the running app.</li>
+      <li><b>Agent previews show IDs, not names. <span class="conf high">High</span></b>The preview strips XML tags but keeps what was inside them. An agent update therefore reads as its task ID, its tool-use ID, and an output path. The agent's name and status come later in the same message, so the two-line clamp cuts them off.</li>
+      <li><b>The person button filters on the same role. <span class="conf high">High</span></b>It keeps every user-type row, so agent updates stay in the "user messages only" view. With both buttons on, this session once showed 51 rows: the 8 rows of the person-only view plus all 43 agent updates.</li>
+      <li><b>Row numbers count rows, not prompts. <span class="conf med">Medium</span></b>In one view of this session, the row marked #175 was the fourth prompt. The number depends on which rows happen to be loaded, so it is not a stable reference.</li>
+      <li><b>The panel only indexes loaded messages. <span class="conf med">Medium</span></b>Messages load newest-first in pages of 200 (<code>MESSAGE_PAGE_SIZE</code> in <code>messageSlice.ts</code>). In this session, a list that started at 9:14 PM left out the first two prompts, at 8:20 PM and 9:10 PM.</li>
+      <li><b>"(user message)" rows are orphaned tool results. <span class="conf med">Medium</span></b>The backend merges each tool result into the tool call that produced it (<code>merge_tool_execution_messages</code> in <code>multi_provider.rs</code>). When that call sits on a page that has not loaded yet, the result arrives alone, with no text to preview. This comes from reading the code, and it fits a list that started one minute after an agent launch.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="kinds">
+  <h2>Nine kinds of row, and five of them share one blue dot</h2>
+  <p>Every option below starts from the same step: classify each row into one of these kinds. The counts come from this session.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Kind</th><th>How the transcript stores it</th><th>Count</th><th>Today</th><th>Proposed look</th></tr></thead>
+    <tbody data-fill="kinds-table"></tbody>
+  </table></div>
+</section>
+
+<section id="options">
+  <h2>Five ways to tell them apart</h2>
+  <p>Each mockup renders the same session. Click a row to select it. In Option A, click a turn to open or close it.</p>
+  <div class="options">
+
+    <article class="opt rec">
+      <div class="opt-head"><span class="opt-letter">A</span><h3>Turn outline</h3><span class="badge">Recommended</span></div>
+      <p class="pitch">Each prompt becomes a collapsible turn. The turn header counts what followed it: replies, tool calls, agents started, and agent updates. With "Prompts only" on, the panel becomes a pure outline.</p>
+      <div class="nav" data-mock-root="A"></div>
+      <dl class="notes">
+        <dt>Good at</dt><dd>It is a true outline of the session. All turns fit on one screen when closed, and agent updates fold into one row per task. The header stays pinned while you scroll inside a long turn.</dd>
+        <dt>Costs</dt><dd>It is the largest change. The list becomes a tree, which needs tree semantics for screen readers and Left and Right keys to fold turns. Fold state must survive older pages loading.</dd>
+        <dt>Code touched</dt><dd>A new hook groups entries into turns. <code>MessageNavigator.tsx</code> renders headers and children through the same virtualizer. <code>MessageNavigator.accessibility.test.tsx</code> moves from a listbox to a tree.</dd>
+      </dl>
+    </article>
+
+    <article class="opt">
+      <div class="opt-head"><span class="opt-letter">B</span><h3>Kind glyphs</h3></div>
+      <p class="pitch">Keep the flat list, and give every kind its own icon, color, and label. Prompts get full-strength text on a tinted row, and everything else is muted.</p>
+      <div class="nav" data-mock-root="B"></div>
+      <dl class="notes">
+        <dt>Good at</dt><dd>It is the smallest change, and every other option needs its classification anyway.</dd>
+        <dt>Costs</dt><dd>The list stays flat. At several hundred rows, the shape of the session is still hard to see.</dd>
+        <dt>Code touched</dt><dd>Add a <code>kind</code> field in <code>types.ts</code>, set it in <code>useNavigatorEntries.ts</code>, and replace <code>ROLE_STYLES</code> in <code>NavigatorEntry.tsx</code> with per-kind styles. About nine new labels go into each of the five locales.</dd>
+      </dl>
+    </article>
+
+    <article class="opt">
+      <div class="opt-head"><span class="opt-letter">C</span><h3>Named filter presets</h3></div>
+      <p class="pitch">Replace the two icon buttons with three named presets and one chip per kind, each with its count. This mockup keeps its own filters and ignores the switches at the top.</p>
+      <div class="nav" data-mock-root="C"></div>
+      <dl class="notes">
+        <dt>Good at</dt><dd>Nothing needs a tooltip to decode. The counts alone tell you that this session is mostly agent traffic.</dd>
+        <dt>Costs</dt><dd>It takes about 60 px of height, and the chips wrap onto more lines in a narrow panel.</dd>
+        <dt>Code touched</dt><dd>The header in <code>MessageNavigator.tsx</code> changes. A set of visible kinds joins <code>filterSlice.ts</code> and persists the way <code>messageFilter</code> already does.</dd>
+      </dl>
+    </article>
+
+    <article class="opt">
+      <div class="opt-head"><span class="opt-letter">D</span><h3>Size tiers</h3></div>
+      <p class="pitch">Keep one chronological list but vary the visual weight. Prompts are cards, work is one-line rows, back-to-back agent updates merge into chips, and long gaps get a divider.</p>
+      <div class="nav" data-mock-root="D"></div>
+      <dl class="notes">
+        <dt>Good at</dt><dd>Prompts stand out while you scroll fast, and the surrounding context stays in place.</dd>
+        <dt>Costs</dt><dd>Row heights vary more, so the height estimate in <code>MessageNavigator.tsx</code> (<code>estimateSize</code>) needs a value per row variant.</dd>
+        <dt>Code touched</dt><dd>The kind classification from Option B, plus row variants, merge logic for update chips, and gap dividers.</dd>
+      </dl>
+    </article>
+
+    <article class="opt">
+      <div class="opt-head"><span class="opt-letter">E</span><h3>Agent lanes</h3></div>
+      <p class="pitch">A narrow gutter draws a lane for you, one for Claude, and one per running agent. An agent's bar runs from its launch to its last update, so overlapping bars show parallel work.</p>
+      <div class="nav" data-mock-root="E"></div>
+      <dl class="notes">
+        <dt>Good at</dt><dd>It is the only option that shows parallelism. You can see three batches running at once and when each one finished.</dd>
+        <dt>Costs</dt><dd>The gutter takes about 90 px of a narrow panel. Many concurrent agents crowd the lanes, and a screen reader cannot get the meaning the drawing carries.</dd>
+        <dt>Code touched</dt><dd>Compute each task's span from launch to last update, assign lanes, and draw the gutter for each row.</dd>
+      </dl>
+    </article>
+
+  </div>
+</section>
+
+<section id="extras">
+  <h2>Smaller fixes that help every option</h2>
+  <div class="extras">
+    <div class="extra">
+      <h3>Name the agent in its update</h3>
+      <p>The notification already carries a summary and a status. Reading those fields instead of stripping tags turns an ID string into a sentence.</p>
+      <div class="ba" data-fill="before-after"></div>
+    </div>
+    <div class="extra">
+      <h3>Group updates per task</h3>
+      <p data-fill="task-intro"></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Task</th><th>Type</th><th class="num">Updates</th><th>Last</th></tr></thead>
+        <tbody data-fill="task-table"></tbody>
+      </table></div>
+    </div>
+    <div class="extra">
+      <h3>Mark long gaps</h3>
+      <p>This session spans three days. A divider for any pause over two hours shows where you stepped away, which is also where a new line of work usually starts.</p>
+      <ul class="gaps" data-fill="gaps"></ul>
+    </div>
+    <div class="extra">
+      <h3>Say when earlier messages are not loaded</h3>
+      <p>Each page response carries <code>total_count</code>, so the panel knows how many messages it has not loaded yet. A top row can say so and offer to load them, instead of silently starting at row #1.</p>
+      <div class="nav short">
+        <div class="nav-body" style="overflow:visible">
+          <button class="row" style="border-left-color:transparent"><div class="row-top" style="color:var(--accent)"><svg class="ic"><use href="#i-up"/></svg><span style="font-weight:600">Earlier messages not loaded</span><time style="color:var(--accent)">Load all</time></div><p style="color:var(--dim)">This list starts at Fri 9:14 PM. The session started at Fri 8:05 PM.</p></button>
+          <button class="row gl k-prompt"><div class="row-top"><svg class="ic"><use href="#i-user"/></svg><span class="klabel">You · prompt 3</span><time>Fri 10:10 PM</time></div><p>I agree with your recommendations. Move forward</p></button>
+        </div>
+      </div>
+    </div>
+    <div class="extra">
+      <h3>Jump between prompts from the keyboard</h3>
+      <p>The app has two global shortcuts today: <kbd>Ctrl</kbd>+<kbd>K</kbd> for search and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> for this panel (<code>useAppKeyboard.ts</code>). A pair such as <kbd>Alt</kbd>+<kbd>↑</kbd> and <kbd>Alt</kbd>+<kbd>↓</kbd> could move the main view to the previous or next prompt. That works even with the panel closed.</p>
+    </div>
+    <div class="extra">
+      <h3>Remember the switches</h3>
+      <p>The person and lightning buttons reset every time the app restarts. Their defaults live in <code>initialFilterState</code> in <code>filterSlice.ts</code>, with no storage behind them. The main view's message filter in the same file already persists to <code>localStorage</code>, so the pattern exists.</p>
+    </div>
+  </div>
+</section>
+
+<section id="recommend">
+  <h2>Recommended order</h2>
+  <p>Each step is useful on its own, and each one makes the next step smaller.</p>
+  <ol class="steps">
+    <li><b>Classify rows by kind (Option B's data model).</b> Implemented in <a href="https://github.com/jhlee0409/claude-code-history-viewer/pull/600">PR #600</a>: a shared classifier, an icon per kind, readable agent updates, and a person button that keeps typed prompts and slash commands.</li>
+    <li><b>Add a prompt-jump shortcut.</b> Alt+Up and Alt+Down move the main view to the previous or next prompt, even with the panel closed.</li>
+    <li><b>Add the turn outline (Option A).</b> A list-or-outline switch in the panel header keeps the flat list available. The outline should highlight the turn in view and say when earlier messages are not loaded.</li>
+    <li><b>Consider lanes (Option E) later,</b> perhaps only inside an open turn that started two or more agents.</li>
+  </ol>
+  <p style="margin-top:14px">Named presets (Option C) become unnecessary once the outline exists. Closing every turn does the person button's job, and grouping updates per task does the lightning button's.</p>
+  <p style="margin-top:14px">Other providers need their own rules. Codex, Gemini, OpenCode, and others record agents differently, and <code>messageCategories.ts</code> already detects each one's parallel-agent calls. The classifier should reuse that code instead of matching Claude Code's tags alone.</p>
+
+  <h2 style="font-size:17px;margin-top:32px">Open questions</h2>
+  <ul class="unknowns">
+    <li>How agent updates look for providers other than Claude Code. The mockups use one Claude Code session.</li>
+  </ul>
+</section>
+
+</div>
+
+<script>
+const EVENTS = [{"time":"Fri 8:05 PM","t":"2026-09-25T20:05","kind":"command","text":"/example-utilities:plab-continue-session","raw":"example-utilities:plab-continue-session /example-utilities:plab-continue-session"},{"time":"Fri 8:05 PM","t":"2026-09-25T20:05","kind":"skill","text":"Skill loaded: plab-continue-session","raw":"Base directory for this skill: C:\\Users\\user\\.claude\\plugins\\cache\\example-labs\\example-utilities\\0…"},{"kind":"tools","time":"Fri 8:05 PM","t":"2026-09-25T20:05","count":2,"names":{"Bash":1,"Read":1}},{"time":"Fri 8:05 PM","t":"2026-09-25T20:05","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 8:20 PM","t":"2026-09-25T20:20","kind":"prompt","text":"Walk me through pending decisions and needed clarifications with context and your recommendations in plain English.","raw":"Walk me through pending decisions and needed clarifications with context and your recommendations…"},{"kind":"tools","time":"Fri 8:20 PM","t":"2026-09-25T20:20","count":8,"names":{"Read":6,"Grep":2}},{"time":"Fri 8:20 PM","t":"2026-09-25T20:20","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 8:20 PM","t":"2026-09-25T20:20","count":1,"names":{"Bash":1}},{"time":"Fri 8:21 PM","t":"2026-09-25T20:21","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 9:10 PM","t":"2026-09-25T21:10","kind":"prompt","text":"D1. C is awesome, that. D2. app/ in this repoGive a number of letter to options. D3. This week be a public and open source, but I'm not sure yet where I'm going to publish it. D4. I need to understand this more. D5. Agree with your recommendation. W8. OK. Older decisions 1. Will add presets for popular community themes with links to them and attribution. Add to backlog, or do spec and do it now if it is straight forward. 2. Curated for now. I want to turn this into a drop down instead of a radio series... as long as the drop down can show the fonts (unless your have another recommendation) Move forward with w6","raw":"D1. C is awesome, that. D2. app/ in this repoGive a number of letter to options. D3. This week be a…"},{"time":"Fri 9:10 PM","t":"2026-09-25T21:10","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 9:10 PM","t":"2026-09-25T21:10","count":8,"names":{"Write":1,"Bash":7}},{"time":"Fri 9:14 PM","t":"2026-09-25T21:14","kind":"launch","source":"agent","name":"W6 Starlight 0.42.4 upgrade"},{"kind":"tools","time":"Fri 9:14 PM","t":"2026-09-25T21:14","count":5,"names":{"ToolSearch":1,"Read":1,"mcp__plugin_context7_context7__query-docs":1,"Bash":2}},{"time":"Fri 9:14 PM","t":"2026-09-25T21:14","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 9:14 PM","t":"2026-09-25T21:14","count":3,"names":{"Bash":3}},{"time":"Fri 9:15 PM","t":"2026-09-25T21:15","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor"},{"kind":"tools","time":"Fri 9:15 PM","t":"2026-09-25T21:15","count":5,"names":{"Edit":4,"Bash":1}},{"time":"Fri 9:16 PM","t":"2026-09-25T21:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 9:47 PM","t":"2026-09-25T21:47","kind":"notification","source":"agent","name":"W6 Starlight 0.42.4 upgrade","status":"completed","raw":"ad2512cc64c5db295 toolu_01ATyzGrFtsVZ7xDtZbu2Ji6 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Fri 9:48 PM","t":"2026-09-25T21:48","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore"},{"kind":"tools","time":"Fri 9:48 PM","t":"2026-09-25T21:48","count":5,"names":{"Bash":3,"Read":2}},{"time":"Fri 9:49 PM","t":"2026-09-25T21:49","kind":"launch","source":"agent","name":"W1 export round-trip test"},{"time":"Fri 9:49 PM","t":"2026-09-25T21:49","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 9:49 PM","t":"2026-09-25T21:49","count":7,"names":{"Bash":1,"ToolSearch":2,"mcp__claude-in-chrome__tabs_context_mcp":1,"mcp__plugin_playwright_playwright__browser_resize":1,"mcp__plugin_playwright_playwright__browser_navigate":1,"mcp__plugin_playwright_playwright__browser_evaluate":1}},{"time":"Fri 9:50 PM","t":"2026-09-25T21:50","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"},{"kind":"tools","time":"Fri 9:50 PM","t":"2026-09-25T21:50","count":3,"names":{"mcp__plugin_playwright_playwright__browser_take_screenshot":2,"Read":1}},{"time":"Fri 9:50 PM","t":"2026-09-25T21:50","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolo"},{"kind":"tools","time":"Fri 9:50 PM","t":"2026-09-25T21:50","count":1,"names":{"mcp__plugin_playwright_playwright__browser_evaluate":1}},{"time":"Fri 9:50 PM","t":"2026-09-25T21:50","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"},{"kind":"tools","time":"Fri 9:50 PM","t":"2026-09-25T21:50","count":7,"names":{"mcp__plugin_playwright_playwright__browser_run_code_unsafe":3,"mcp__plugin_playwright_playwright__browser_take_screenshot":1,"Read":3}},{"time":"Fri 9:51 PM","t":"2026-09-25T21:51","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dol"},{"kind":"tools","time":"Fri 9:51 PM","t":"2026-09-25T21:51","count":5,"names":{"mcp__plugin_playwright_playwright__browser_run_code_unsafe":3,"Read":2}},{"time":"Fri 9:51 PM","t":"2026-09-25T21:51","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore"},{"kind":"tools","time":"Fri 9:51 PM","t":"2026-09-25T21:51","count":16,"names":{"mcp__plugin_playwright_playwright__browser_run_code_unsafe":6,"Read":3,"Bash":6,"mcp__plugin_playwright_playwright__browser_take_screenshot":1}},{"time":"Fri 9:57 PM","t":"2026-09-25T21:57","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim"},{"kind":"tools","time":"Fri 9:57 PM","t":"2026-09-25T21:57","count":6,"names":{"Read":3,"Glob":1,"mcp__plugin_playwright_playwright__browser_close":1,"Edit":1}},{"time":"Fri 9:57 PM","t":"2026-09-25T21:57","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 9:58 PM","t":"2026-09-25T21:58","kind":"notification","source":"command","name":"Read console errors and locate the download","status":"completed","raw":"bmtwo0rg1 toolu_01TvMQvVBTLZv3ctJzJh9r23 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-prisan…"},{"time":"Fri 9:58 PM","t":"2026-09-25T21:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod"},{"time":"Fri 10:10 PM","t":"2026-09-25T22:10","kind":"prompt","text":"I agree with your recommendations. Move forward","raw":"I agree with your recommendations. Move forward"},{"time":"Fri 10:11 PM","t":"2026-09-25T22:11","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 10:11 PM","t":"2026-09-25T22:11","count":3,"names":{"Bash":3}},{"time":"Fri 10:12 PM","t":"2026-09-25T22:12","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 10:14 PM","t":"2026-09-25T22:14","count":4,"names":{"Bash":1,"Read":1,"Edit":2}},{"time":"Fri 10:14 PM","t":"2026-09-25T22:14","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod te"},{"kind":"tools","time":"Fri 10:14 PM","t":"2026-09-25T22:14","count":6,"names":{"Bash":3,"Read":1,"Edit":2}},{"time":"Fri 10:14 PM","t":"2026-09-25T22:14","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do ei"},{"kind":"tools","time":"Fri 10:14 PM","t":"2026-09-25T22:14","count":9,"names":{"Edit":2,"Bash":7}},{"time":"Fri 10:16 PM","t":"2026-09-25T22:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor i"},{"kind":"tools","time":"Fri 10:16 PM","t":"2026-09-25T22:16","count":1,"names":{"Bash":1}},{"time":"Fri 10:16 PM","t":"2026-09-25T22:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor in"},{"kind":"tools","time":"Fri 10:16 PM","t":"2026-09-25T22:16","count":1,"names":{"Bash":1}},{"time":"Fri 10:16 PM","t":"2026-09-25T22:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim"},{"kind":"tools","time":"Fri 10:16 PM","t":"2026-09-25T22:16","count":2,"names":{"Edit":1,"Read":1}},{"time":"Fri 10:16 PM","t":"2026-09-25T22:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 10:16 PM","t":"2026-09-25T22:16","count":1,"names":{"Bash":1}},{"time":"Fri 10:16 PM","t":"2026-09-25T22:16","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labo"},{"kind":"tools","time":"Fri 10:16 PM","t":"2026-09-25T22:16","count":2,"names":{"Write":1,"Bash":1}},{"time":"Fri 10:17 PM","t":"2026-09-25T22:17","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. U"},{"kind":"tools","time":"Fri 10:17 PM","t":"2026-09-25T22:17","count":2,"names":{"Bash":2}},{"time":"Fri 10:18 PM","t":"2026-09-25T22:18","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 10:24 PM","t":"2026-09-25T22:24","kind":"notification","source":"agent","name":"W1 export round-trip test","status":"completed","raw":"a27eec7b32b1fd983 toolu_01S9cz9qoioYRypCXwHX5Ztp C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Fri 10:25 PM","t":"2026-09-25T22:25","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 10:25 PM","t":"2026-09-25T22:25","count":1,"names":{"Bash":1}},{"time":"Fri 10:25 PM","t":"2026-09-25T22:25","kind":"launch","source":"command","name":"Run the nine browser suites against app/ one by one"},{"time":"Fri 10:25 PM","t":"2026-09-25T22:25","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."},{"kind":"tools","time":"Fri 10:25 PM","t":"2026-09-25T22:25","count":2,"names":{"Bash":1,"Read":1}},{"time":"Fri 10:25 PM","t":"2026-09-25T22:25","kind":"skill","text":"Image details added","raw":"[Image: original 2888x1000, displayed at 2000x693. Multiply coordinates by 1.44 to map to original…"},{"kind":"tools","time":"Fri 10:26 PM","t":"2026-09-25T22:26","count":4,"names":{"Bash":3,"Read":1}},{"time":"Fri 10:26 PM","t":"2026-09-25T22:26","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 10:37 PM","t":"2026-09-25T22:37","kind":"notification","source":"command","name":"Run the nine browser suites against app/ one by one","status":"completed","raw":"byj2222k0 toolu_018Z3rjUfqwt2PXESCcuLNPn C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-prisan…"},{"kind":"tools","time":"Fri 10:37 PM","t":"2026-09-25T22:37","count":2,"names":{"Bash":2}},{"time":"Fri 10:37 PM","t":"2026-09-25T22:37","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor"},{"kind":"tools","time":"Fri 10:37 PM","t":"2026-09-25T22:37","count":2,"names":{"Bash":2}},{"time":"Fri 10:39 PM","t":"2026-09-25T22:39","kind":"launch","source":"agent","name":"Batch A: undo, rail, drag"},{"time":"Fri 10:39 PM","t":"2026-09-25T22:39","kind":"launch","source":"agent","name":"Batch C: export fixes, roundtrip"},{"time":"Fri 10:39 PM","t":"2026-09-25T22:39","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed"},{"kind":"tools","time":"Fri 10:39 PM","t":"2026-09-25T22:39","count":1,"names":{"Edit":1}},{"time":"Fri 10:39 PM","t":"2026-09-25T22:39","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 11:18 PM","t":"2026-09-25T23:18","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e toolu_01VA11erwSBm5jEcXmbuYiTe C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Fri 11:18 PM","t":"2026-09-25T23:18","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna al"},{"time":"Fri 11:22 PM","t":"2026-09-25T23:22","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c toolu_01SJ46f5W73AGXS99QMUwQVb C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Fri 11:22 PM","t":"2026-09-25T23:22","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 11:22 PM","t":"2026-09-25T23:22","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:22 PM","t":"2026-09-25T23:22","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor in"},{"time":"Fri 11:26 PM","t":"2026-09-25T23:26","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:26 PM","t":"2026-09-25T23:26","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididun"},{"time":"Fri 11:27 PM","t":"2026-09-25T23:27","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:27 PM","t":"2026-09-25T23:27","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do"},{"time":"Fri 11:28 PM","t":"2026-09-25T23:28","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:28 PM","t":"2026-09-25T23:28","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipi"},{"time":"Fri 11:29 PM","t":"2026-09-25T23:29","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:29 PM","t":"2026-09-25T23:29","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing e"},{"time":"Fri 11:29 PM","t":"2026-09-25T23:29","kind":"prompt","text":"Scrub for pii. Then push to gh. For copyright use Alex Example for now.","raw":"Scrub for pii. Then push to gh. For copyright use Alex Example for now."},{"time":"Fri 11:29 PM","t":"2026-09-25T23:29","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 11:29 PM","t":"2026-09-25T23:29","count":5,"names":{"Bash":3,"Write":2}},{"time":"Fri 11:30 PM","t":"2026-09-25T23:30","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut"},{"kind":"tools","time":"Fri 11:30 PM","t":"2026-09-25T23:30","count":1,"names":{"Bash":1}},{"time":"Fri 11:31 PM","t":"2026-09-25T23:31","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipis"},{"kind":"tools","time":"Fri 11:31 PM","t":"2026-09-25T23:31","count":1,"names":{"Edit":1}},{"time":"Fri 11:31 PM","t":"2026-09-25T23:31","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 11:32 PM","t":"2026-09-25T23:32","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:32 PM","t":"2026-09-25T23:32","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do"},{"time":"Fri 11:32 PM","t":"2026-09-25T23:32","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:32 PM","t":"2026-09-25T23:32","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididu"},{"time":"Fri 11:34 PM","t":"2026-09-25T23:34","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:34 PM","t":"2026-09-25T23:34","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt"},{"time":"Fri 11:41 PM","t":"2026-09-25T23:41","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:41 PM","t":"2026-09-25T23:41","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labor"},{"time":"Fri 11:41 PM","t":"2026-09-25T23:41","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:42 PM","t":"2026-09-25T23:42","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Fri 11:42 PM","t":"2026-09-25T23:42","count":3,"names":{"Bash":3}},{"time":"Fri 11:44 PM","t":"2026-09-25T23:44","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad"},{"kind":"tools","time":"Fri 11:44 PM","t":"2026-09-25T23:44","count":5,"names":{"Bash":3,"ToolSearch":1,"SendMessage":1}},{"time":"Fri 11:45 PM","t":"2026-09-25T23:45","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut"},{"kind":"tools","time":"Fri 11:45 PM","t":"2026-09-25T23:45","count":1,"names":{"Edit":1}},{"time":"Fri 11:45 PM","t":"2026-09-25T23:45","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Fri 11:46 PM","t":"2026-09-25T23:46","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Fri 11:46 PM","t":"2026-09-25T23:46","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor inci"},{"time":"Sat 12:04 AM","t":"2026-09-26T00:04","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c toolu_01Q1LSCvgVhBCZk7vBc522iu C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Sat 12:04 AM","t":"2026-09-26T00:04","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et do"},{"time":"Sat 12:07 AM","t":"2026-09-26T00:07","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 12:08 AM","t":"2026-09-26T00:08","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:08 AM","t":"2026-09-26T00:08","count":2,"names":{"Bash":2}},{"time":"Sat 12:08 AM","t":"2026-09-26T00:08","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:08 AM","t":"2026-09-26T00:08","count":2,"names":{"Bash":2}},{"time":"Sat 12:09 AM","t":"2026-09-26T00:09","kind":"launch","source":"agent","name":"Batch B: screenshot visible area"},{"time":"Sat 12:09 AM","t":"2026-09-26T00:09","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 12:10 AM","t":"2026-09-26T00:10","kind":"notification","source":"agent","name":"Batch A: undo, rail, drag","status":"completed","raw":"a1a52715e44eb334e C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 12:10 AM","t":"2026-09-26T00:10","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:10 AM","t":"2026-09-26T00:10","count":2,"names":{"Read":2}},{"time":"Sat 12:11 AM","t":"2026-09-26T00:11","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:11 AM","t":"2026-09-26T00:11","count":1,"names":{"Bash":1}},{"time":"Sat 12:11 AM","t":"2026-09-26T00:11","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:11 AM","t":"2026-09-26T00:11","count":4,"names":{"Bash":1,"mcp__plugin_playwright_playwright__browser_resize":1,"mcp__plugin_playwright_playwright__browser_run_code_unsafe":1,"Read":1}},{"time":"Sat 12:12 AM","t":"2026-09-26T00:12","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:12 AM","t":"2026-09-26T00:12","count":6,"names":{"mcp__plugin_playwright_playwright__browser_run_code_unsafe":3,"Read":2,"mcp__plugin_playwright_playwright__browser_close":1}},{"time":"Sat 12:13 AM","t":"2026-09-26T00:13","kind":"launch","source":"command","name":"Run all suites and the round-trip test on the merge"},{"time":"Sat 12:13 AM","t":"2026-09-26T00:13","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut"},{"kind":"tools","time":"Sat 12:13 AM","t":"2026-09-26T00:13","count":1,"names":{"Bash":1}},{"time":"Sat 12:13 AM","t":"2026-09-26T00:13","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 12:25 AM","t":"2026-09-26T00:25","kind":"notification","source":"command","name":"Run all suites and the round-trip test on the merge","status":"completed","raw":"bn258kr21 toolu_01BsHyvSkLSCn38ekTYero8T C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-prisan…"},{"kind":"tools","time":"Sat 12:25 AM","t":"2026-09-26T00:25","count":1,"names":{"Read":1}},{"time":"Sat 12:25 AM","t":"2026-09-26T00:25","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 12:25 AM","t":"2026-09-26T00:25","count":1,"names":{"Bash":1}},{"time":"Sat 12:26 AM","t":"2026-09-26T00:26","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor"},{"kind":"tools","time":"Sat 12:26 AM","t":"2026-09-26T00:26","count":2,"names":{"Bash":1,"Edit":1}},{"time":"Sat 12:26 AM","t":"2026-09-26T00:26","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 12:52 AM","t":"2026-09-26T00:52","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 toolu_013aqTvxy8oN3C2wCFS8TMYv C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Sat 12:52 AM","t":"2026-09-26T00:52","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt"},{"time":"Sat 12:58 AM","t":"2026-09-26T00:58","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 12:58 AM","t":"2026-09-26T00:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing e"},{"time":"Sat 1:01 AM","t":"2026-09-26T01:01","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:01 AM","t":"2026-09-26T01:01","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur"},{"time":"Sat 1:05 AM","t":"2026-09-26T01:05","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:05 AM","t":"2026-09-26T01:05","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet,"},{"time":"Sat 1:05 AM","t":"2026-09-26T01:05","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:05 AM","t":"2026-09-26T01:05","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, con"},{"time":"Sat 1:07 AM","t":"2026-09-26T01:07","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:07 AM","t":"2026-09-26T01:07","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor inci"},{"time":"Sat 1:08 AM","t":"2026-09-26T01:08","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:08 AM","t":"2026-09-26T01:08","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consec"},{"time":"Sat 1:11 AM","t":"2026-09-26T01:11","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:11 AM","t":"2026-09-26T01:11","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 1:11 AM","t":"2026-09-26T01:11","count":5,"names":{"Bash":2,"Read":2,"SendMessage":1}},{"time":"Sat 1:12 AM","t":"2026-09-26T01:12","kind":"launch","source":"agent","name":"D3a base-path fix"},{"time":"Sat 1:13 AM","t":"2026-09-26T01:13","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing eli"},{"kind":"tools","time":"Sat 1:13 AM","t":"2026-09-26T01:13","count":1,"names":{"Edit":1}},{"time":"Sat 1:13 AM","t":"2026-09-26T01:13","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 1:19 AM","t":"2026-09-26T01:19","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 toolu_01XqQemKQw4xsFZDdmjEDayQ C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Sat 1:19 AM","t":"2026-09-26T01:19","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 1:23 AM","t":"2026-09-26T01:23","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:23 AM","t":"2026-09-26T01:23","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet,"},{"time":"Sat 1:27 AM","t":"2026-09-26T01:27","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:27 AM","t":"2026-09-26T01:27","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur"},{"time":"Sat 1:29 AM","t":"2026-09-26T01:29","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:29 AM","t":"2026-09-26T01:29","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consecte"},{"time":"Sat 1:30 AM","t":"2026-09-26T01:30","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:30 AM","t":"2026-09-26T01:30","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet,"},{"time":"Sat 1:31 AM","t":"2026-09-26T01:31","kind":"notification","source":"agent","name":"Batch B: screenshot visible area","status":"completed","raw":"a8de2b674a6c4ffe4 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 1:31 AM","t":"2026-09-26T01:31","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 1:31 AM","t":"2026-09-26T01:31","count":3,"names":{"Read":1,"Bash":1,"Edit":1}},{"time":"Sat 1:32 AM","t":"2026-09-26T01:32","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 2:20 AM","t":"2026-09-26T02:20","kind":"notification","source":"agent","name":"Batch C: export fixes, roundtrip","status":"completed","raw":"afb46c9181f64ce6c C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 2:20 AM","t":"2026-09-26T02:20","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna"},{"time":"Sat 2:38 AM","t":"2026-09-26T02:38","kind":"notification","source":"agent","name":"D3a base-path fix","status":"completed","raw":"a3e79c4ee7466da66 toolu_01UWbCqPq8yNw6E3iLHFgLP6 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Project…"},{"time":"Sat 2:38 AM","t":"2026-09-26T02:38","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut lab"},{"time":"Sat 2:45 AM","t":"2026-09-26T02:45","kind":"notification","source":"agent","name":"D3a base-path fix","status":"completed","raw":"a3e79c4ee7466da66 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 2:45 AM","t":"2026-09-26T02:45","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing e"},{"time":"Sat 2:48 AM","t":"2026-09-26T02:48","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 2:58 AM","t":"2026-09-26T02:58","kind":"notification","source":"agent","name":"D3a base-path fix","status":"completed","raw":"a3e79c4ee7466da66 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 2:58 AM","t":"2026-09-26T02:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 2:58 AM","t":"2026-09-26T02:58","count":6,"names":{"Bash":4,"Edit":2}},{"time":"Sat 2:58 AM","t":"2026-09-26T02:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing"},{"kind":"tools","time":"Sat 2:59 AM","t":"2026-09-26T02:59","count":1,"names":{"Write":1}},{"time":"Sat 2:59 AM","t":"2026-09-26T02:59","kind":"launch","source":"command","name":"Run all tests at root and under a sub-path"},{"time":"Sat 2:59 AM","t":"2026-09-26T02:59","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 3:02 AM","t":"2026-09-26T03:02","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 3:18 AM","t":"2026-09-26T03:18","kind":"notification","source":"command","name":"Run all tests at root and under a sub-path","status":"completed","raw":"bsbezxxdt toolu_01SZ8NKZExJfdQQDCWgr78a1 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-prisan…"},{"kind":"tools","time":"Sat 3:18 AM","t":"2026-09-26T03:18","count":12,"names":{"Read":1,"Bash":8,"Write":1,"Edit":2}},{"time":"Sat 3:21 AM","t":"2026-09-26T03:21","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 3:24 AM","t":"2026-09-26T03:24","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 8:54 AM","t":"2026-09-26T08:54","kind":"prompt","text":"Wrap and queue the next session to do all the \"next in order\" list","raw":"Wrap and queue the next session to do all the \"next in order\" list"},{"kind":"tools","time":"Sat 8:54 AM","t":"2026-09-26T08:54","count":1,"names":{"Skill":1}},{"time":"Sat 8:54 AM","t":"2026-09-26T08:54","kind":"skill","text":"Skill loaded: plab-wrap-session","raw":"Base directory for this skill: C:\\Users\\user\\.claude\\plugins\\cache\\example-labs\\example-utilities\\0…"},{"time":"Sat 8:54 AM","t":"2026-09-26T08:54","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incidid"},{"kind":"tools","time":"Sat 8:54 AM","t":"2026-09-26T08:54","count":4,"names":{"Bash":3,"Write":1}},{"time":"Sat 8:58 AM","t":"2026-09-26T08:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur ad"},{"kind":"tools","time":"Sat 8:58 AM","t":"2026-09-26T08:58","count":1,"names":{"Bash":1}},{"time":"Sat 8:58 AM","t":"2026-09-26T08:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 8:58 AM","t":"2026-09-26T08:58","count":4,"names":{"Edit":3,"Bash":1}},{"time":"Sat 8:58 AM","t":"2026-09-26T08:58","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 9:01 AM","t":"2026-09-26T09:01","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 9:47 AM","t":"2026-09-26T09:47","kind":"prompt","text":"H1 and h2 yes. Go ahead and prepare the oem source files and pr and merge them, but don't do the flip","raw":"H1 and h2 yes. Go ahead and prepare the oem source files and pr and merge them, but don't do the…"},{"time":"Sat 9:47 AM","t":"2026-09-26T09:47","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 9:47 AM","t":"2026-09-26T09:47","count":2,"names":{"Bash":2}},{"time":"Sat 9:48 AM","t":"2026-09-26T09:48","kind":"launch","source":"agent","name":"W13 open-source prep"},{"time":"Sat 9:48 AM","t":"2026-09-26T09:48","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 9:48 AM","t":"2026-09-26T09:48","count":1,"names":{"Edit":1}},{"time":"Sat 9:48 AM","t":"2026-09-26T09:48","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 11:18 AM","t":"2026-09-26T11:18","kind":"notification","source":"agent","name":"W13 open-source prep","status":"completed","raw":"a20c69db0219af293 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 11:18 AM","t":"2026-09-26T11:18","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor in"},{"time":"Sat 11:20 AM","t":"2026-09-26T11:20","kind":"notification","source":"agent","name":"W13 open-source prep","status":"completed","raw":"a20c69db0219af293 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 11:20 AM","t":"2026-09-26T11:20","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing el"},{"time":"Sat 11:24 AM","t":"2026-09-26T11:24","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 11:42 AM","t":"2026-09-26T11:42","kind":"notification","source":"agent","name":"W13 open-source prep","status":"completed","raw":"a20c69db0219af293 C:\\Users\\user\\AppData\\Local\\Temp\\claude\\E--Projects-example-labs-astro-starlight-…"},{"time":"Sat 11:42 AM","t":"2026-09-26T11:42","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 11:42 AM","t":"2026-09-26T11:42","count":2,"names":{"Bash":2}},{"time":"Sat 11:43 AM","t":"2026-09-26T11:43","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"kind":"tools","time":"Sat 11:43 AM","t":"2026-09-26T11:43","count":10,"names":{"Bash":5,"Read":1,"Edit":4}},{"time":"Sat 11:44 AM","t":"2026-09-26T11:44","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmo"},{"kind":"tools","time":"Sat 11:44 AM","t":"2026-09-26T11:44","count":2,"names":{"Edit":1,"Bash":1}},{"time":"Sat 11:44 AM","t":"2026-09-26T11:44","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Sat 11:47 AM","t":"2026-09-26T11:47","kind":"away","text":"Recap text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut a"},{"time":"Sat 6:13 PM","t":"2026-09-26T18:13","kind":"prompt","text":"If I host at subdomain.domain.com ... so I host the store or do a dns point to gh page?","raw":"If I host at subdomain.domain.com ... so I host the store or do a dns point to gh page?"},{"time":"Sat 6:14 PM","t":"2026-09-26T18:14","kind":"reply","text":"Reply text omitted. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim"},{"time":"Mon 10:43 AM","t":"2026-09-28T10:43","kind":"prompt","text":"create a document in _local/ where appropriate that instructs me on what I need to do in the DNS for examplelabs.com/ to point astro-starlight-visualizer.examplelabs.com to the gh page ... and everything that is needed in gh to make to make it work. do you have another recommendation for the subdomain? I don't like the one above for a variety of reasons.","raw":"create a document in _local/ where appropriate that instructs me on what I need to do in the DNS…"},{"time":"Mon 10:45 AM","t":"2026-09-28T10:45","kind":"compact","text":"Context compacted - summary of earlier turns","raw":"This session is being continued from a previous conversation that ran out of context. The summary…"}];
+
+/* ---------------- data prep ---------------- */
+let turnCounter = 0;
+EVENTS.forEach((e, i) => {
+  e.id = i;
+  if (e.kind === "prompt") e.turnNo = ++turnCounter;
+  e.turn = turnCounter;
+  e.date = new Date(e.t);
+});
+const TURN_TOTAL = turnCounter;
+const isAgentKind = (k) => k === "launch" || k === "notification";
+
+// One task per agent or background command, spanning launch to last update.
+const TASKS = new Map();
+for (const e of EVENTS) {
+  if (!isAgentKind(e.kind)) continue;
+  let t = TASKS.get(e.name);
+  if (!t) {
+    t = { name: e.name, source: e.source, first: e.id, last: e.id, launch: null, updates: [], status: "" };
+    TASKS.set(e.name, t);
+  }
+  t.last = e.id;
+  if (e.kind === "launch") { if (!t.launch) t.launch = e; }
+  else { t.updates.push(e); t.status = e.status; }
+}
+const TASK_LIST = [...TASKS.values()].sort((a, b) => a.first - b.first);
+const HUES = [55, 150, 205, 285, 330, 100, 20, 250];
+{
+  const laneEnds = [];
+  TASK_LIST.forEach((t, i) => {
+    let lane = laneEnds.findIndex((end) => end < t.first);
+    if (lane === -1) { lane = laneEnds.length; laneEnds.push(t.last); } else laneEnds[lane] = t.last;
+    t.lane = lane;
+    t.color = `oklch(0.78 0.15 ${HUES[i % HUES.length]})`;
+  });
+}
+const LANE_COUNT = Math.max(1, ...TASK_LIST.map((t) => t.lane + 1));
+
+/* ---------------- helpers ---------------- */
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icon = (id, cls = "") => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const clock = (e) => e.time.split(" ").slice(1).join(" ");
+const toolSummary = (e) => Object.entries(e.names).sort((a, b) => b[1] - a[1]).map(([n, c]) => (c > 1 ? `${n} ×${c}` : n)).join(", ");
+function span(ms) {
+  const m = Math.round(ms / 60000), h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) return `${Math.floor(h / 24)} d ${h % 24} h`;
+  return h ? `${h} h ${r} m` : `${r} m`;
+}
+const GAP_MS = 2 * 3600e3;
+
+const KIND = {
+  prompt:       { label: "You",                 icon: "user",    stored: "user · plain text",                         look: "Filled person icon, full-strength text, tinted row. The top level of the outline." },
+  command:      { label: "Command",             icon: "slash",   stored: "user · <code>&lt;command-name&gt;</code>",   look: "Blue slash icon with the command in monospace. Counts as something you typed." },
+  reply:        { label: "Claude",              icon: "bot",     stored: "assistant · text block",                    look: "Amber bot icon, muted text." },
+  tools:        { label: "Tools",               icon: "wrench",  stored: "assistant · <code>tool_use</code>",          look: "Grey wrench, one row per run of calls, such as \"Bash ×5, Read ×2\"." },
+  launch:       { label: "Agent started",       icon: "branch",  stored: "assistant · Agent call or background Bash",  look: "Orange branch icon with the task name." },
+  notification: { label: "Agent update",        icon: "zap",     stored: "user · <code>&lt;task-notification&gt;</code>", look: "Orange lightning with the task name and status. Grouped per task." },
+  away:         { label: "While you were away", icon: "moon",    stored: "system · <code>away_summary</code>",         look: "Purple moon divider." },
+  compact:      { label: "Compacted",           icon: "archive", stored: "user · <code>isCompactSummary</code>",       look: "Purple archive divider." },
+  skill:        { label: "Injected context",    icon: "book",    stored: "user · <code>isMeta</code>",                 look: "Nothing: the backend drops <code>isMeta</code> rows before the panel sees them." },
+};
+const TODAY_LOOK = { prompt: "you", command: "you", compact: "you", notification: "you", skill: "you", reply: "claude", tools: "claude", launch: "claude", away: "sys" };
+
+function nicePreview(e) {
+  switch (e.kind) {
+    case "tools": return toolSummary(e);
+    case "launch": return e.name;
+    case "notification": return e.name;
+    default: return e.text;
+  }
+}
+function kindLabel(e) {
+  if (e.kind === "prompt") return `You · prompt ${e.turnNo}`;
+  if (e.kind === "launch") return e.source === "agent" ? "Agent started" : "Command started";
+  if (e.kind === "notification") return e.source === "agent" ? "Agent update" : "Command update";
+  if (e.kind === "tools") return `Tools · ${e.count} call${e.count > 1 ? "s" : ""}`;
+  return KIND[e.kind].label;
+}
+
+/* ---------------- state ---------------- */
+const state = { promptsOnly: true, showAgents: true };
+const scrub = EVENTS.find((e) => e.kind === "prompt" && e.text.startsWith("Scrub"));
+const DEFAULT_ACTIVE = scrub ? scrub.id : 0;
+const active = { today: DEFAULT_ACTIVE, A: DEFAULT_ACTIVE, B: DEFAULT_ACTIVE, C: DEFAULT_ACTIVE, D: DEFAULT_ACTIVE, E: DEFAULT_ACTIVE };
+const openTurns = new Set([scrub ? scrub.turn : 1]);
+const cState = { mode: "prompts", kinds: new Set(["prompt", "command"]) };
+const C_PRESETS = {
+  prompts: ["prompt", "command"],
+  conversation: ["prompt", "command", "reply", "away", "compact"],
+  everything: Object.keys(KIND),
+};
+
+// New-model visibility used by options A, B, D, E.
+function visible(e) {
+  if (!state.showAgents && isAgentKind(e.kind)) return false;
+  if (state.promptsOnly) return e.kind === "prompt" || e.kind === "command" || isAgentKind(e.kind);
+  return true;
+}
+
+const navHead = (title, count, extra = "") =>
+  `<div class="nav-head">${icon("list", "dim")}<span class="title">${title}</span><span class="count">${count}</span>${extra}</div>`;
+const fakeFilter = `<div class="nav-filter"><div>${icon("search", "ic-xs")}Filter messages…</div></div>`;
+const act = (mock, id) => (active[mock] === id ? " active" : "");
+
+/* ---------------- today ---------------- */
+function renderToday(m) {
+  // Mirrors MessageNavigator.tsx: parallel-task filter, then numbering, then the user-only filter.
+  let list = [];
+  for (const e of EVENTS) {
+    if (!state.showAgents && isAgentKind(e.kind)) continue;
+    if (e.kind === "tools") {
+      for (const [n, c] of Object.entries(e.names)) for (let k = 0; k < c; k++) list.push({ e, look: "claude", preview: n, tool: true });
+      continue;
+    }
+    const preview = e.kind === "launch" ? (e.source === "agent" ? "Agent" : "Bash") : (e.raw ?? e.text);
+    list.push({ e, look: TODAY_LOOK[e.kind], preview, tool: e.kind === "launch" });
+  }
+  list.forEach((r, i) => (r.n = i + 1));
+  if (state.promptsOnly) list = list.filter((r) => r.look === "you");
+  const seen = new Set();
+  const rows = list.map((r) => {
+    const first = !seen.has(r.e.id); seen.add(r.e.id);
+    return `<button class="row${first ? act(m, r.e.id) : ""}" data-mock="${m}" data-id="${r.e.id}">
+      <div class="row-top"><span class="dot d-${r.look}"></span><span>#${r.n}</span>${r.tool ? icon("wrench", "ic-xs dim") : ""}<time>${clock(r.e)}</time></div>
+      <p>${esc(r.preview)}</p></button>`;
+  }).join("");
+  const tb = `<span class="tb${state.promptsOnly ? " on-you" : ""}">${icon("user")}</span>${TASK_LIST.length ? `<span class="tb${state.showAgents ? " on-agent" : ""}">${icon("zap")}</span>` : ""}<span class="tb">${icon("panel")}</span>`;
+  return navHead("Messages", list.length, tb) + fakeFilter + `<div class="nav-body">${rows}</div>`;
+}
+
+/* ---------------- B: glyph rows ---------------- */
+function glyphRow(e, m) {
+  const k = KIND[e.kind];
+  let text = esc(nicePreview(e));
+  if (e.kind === "notification") text += ` <span class="status">· ${esc(e.status)}</span>`;
+  return `<button class="row gl k-${e.kind}${act(m, e.id)}" data-mock="${m}" data-id="${e.id}">
+    <div class="row-top">${icon(k.icon)}<span class="klabel">${esc(kindLabel(e))}</span><time>${e.time}</time></div>
+    <p>${text}</p></button>`;
+}
+function renderB(m) {
+  const list = EVENTS.filter(visible);
+  return navHead("Messages", list.length) + fakeFilter + `<div class="nav-body">${list.map((e) => glyphRow(e, m)).join("")}</div>`;
+}
+
+/* ---------------- A: turn outline ---------------- */
+function buildTurns() {
+  const turns = [];
+  let cur = { n: 0, prompt: null, events: [] };
+  for (const e of EVENTS) {
+    if (e.kind === "prompt") { turns.push(cur); cur = { n: e.turnNo, prompt: e, events: [] }; }
+    else cur.events.push(e);
+  }
+  turns.push(cur);
+  return turns.filter((t) => t.prompt || t.events.length);
+}
+const TURNS = buildTurns();
+
+function turnChildren(t) {
+  const out = [];
+  let work = null;
+  const groups = new Map();
+  for (const e of t.events) {
+    if (!state.showAgents && isAgentKind(e.kind)) continue;
+    if (e.kind === "reply" || e.kind === "tools") {
+      if (!work) { work = { type: "work", id: e.id, replies: 0, tools: 0, first: null, last: null }; out.push(work); }
+      if (e.kind === "reply") { work.replies++; if (!work.first) work.first = e; work.last = e; }
+      else work.tools += e.count;
+      continue;
+    }
+    if (isAgentKind(e.kind)) {
+      let g = groups.get(e.name);
+      if (!g) { g = { type: "task", id: e.id, name: e.name, source: e.source, launch: null, updates: [] }; groups.set(e.name, g); out.push(g); }
+      if (e.kind === "launch") g.launch = e; else g.updates.push(e);
+      continue;
+    }
+    out.push({ type: "event", id: e.id, e });
+  }
+  return out;
+}
+function kidRow(c, m) {
+  if (c.type === "work") {
+    const bits = [];
+    if (c.replies) bits.push(`${c.replies} repl${c.replies > 1 ? "ies" : "y"}`);
+    if (c.tools) bits.push(`${c.tools} tool call${c.tools > 1 ? "s" : ""}`);
+    const lead = c.first ? c.first.text : "Tool calls without a text reply";
+    return `<button class="kid k-reply${act(m, c.id)}" data-mock="${m}" data-id="${c.id}">${icon("bot")}<span class="kb"><span class="k1 block">${esc(lead)}</span><span class="k2 block">Claude · ${bits.join(" · ")}</span></span></button>`;
+  }
+  if (c.type === "task") {
+    const task = TASKS.get(c.name);
+    const n = c.updates.length;
+    const last = c.updates[n - 1];
+    const bits = [];
+    if (c.launch) bits.push(`started ${clock(c.launch)}`);
+    else if (task.launch) bits.push(`started in prompt ${task.launch.turn}`);
+    if (n) bits.push(`${n} update${n > 1 ? "s" : ""} here`);
+    if (last) bits.push(`${last.status} ${clock(last)}`);
+    const kind = c.source === "agent" ? "Agent" : "Command";
+    return `<button class="kid k-notification${act(m, c.id)}" data-mock="${m}" data-id="${c.id}">${icon(c.launch ? "branch" : "zap")}<span class="kb"><span class="k1 block">${esc(c.name)}</span><span class="k2 block">${kind} · ${bits.join(" · ")}</span></span></button>`;
+  }
+  const e = c.e, k = KIND[e.kind];
+  const lead = e.kind === "command" ? e.text : (e.kind === "away" ? e.text : nicePreview(e));
+  return `<button class="kid k-${e.kind}${act(m, c.id)}" data-mock="${m}" data-id="${c.id}">${icon(k.icon)}<span class="kb"><span class="k1 block">${esc(lead)}</span><span class="k2 block">${esc(k.label)} · ${clock(e)}</span></span></button>`;
+}
+function stat(kind, iconId, n, title) {
+  return n ? `<span class="stat k-${kind}" title="${title}">${icon(iconId)}${n}</span>` : "";
+}
+function renderA(m) {
+  const html = TURNS.map((t) => {
+    const ev = t.events;
+    const replies = ev.filter((e) => e.kind === "reply").length;
+    const tools = ev.filter((e) => e.kind === "tools").reduce((s, e) => s + e.count, 0);
+    const launches = ev.filter((e) => e.kind === "launch").length;
+    const updates = ev.filter((e) => e.kind === "notification").length;
+    const aways = ev.filter((e) => e.kind === "away" || e.kind === "compact").length;
+    const start = t.prompt || ev[0];
+    const end = ev.length ? ev[ev.length - 1] : start;
+    const ran = end.date - start.date;
+    const isOpen = openTurns.has(t.n) && !state.promptsOnly;
+    const kids = isOpen ? turnChildren(t).map((c) => kidRow(c, m)).join("") : "";
+    const headActive = t.prompt && active[m] === t.prompt.id ? " active" : "";
+    const title = t.prompt
+      ? `<span class="tn">Prompt ${t.n}</span><span>of ${TURN_TOTAL}</span>`
+      : `<span class="tn" style="color:var(--muted)">Before your first prompt</span>`;
+    const text = t.prompt ? esc(t.prompt.text) : esc(ev.filter((e) => e.kind === "command" || e.kind === "skill").map((e) => e.text).join(" · "));
+    return `<div class="turn${isOpen ? " open" : ""}">
+      <button class="turn-head${t.prompt ? "" : " pre"}${headActive}" data-turn="${t.n}" data-mock="${m}" data-id="${start.id}" aria-expanded="${isOpen}">
+        <div class="l1">${icon("chev", "chev")}${title}<time>${start.time}</time></div>
+        <div class="txt">${text}</div>
+        <div class="stats">${stat("reply", "bot", replies, "Claude replies")}${stat("tools", "wrench", tools, "Tool calls")}${state.showAgents ? stat("launch", "branch", launches, "Agents or commands started") + stat("notification", "zap", updates, "Agent updates") : ""}${stat("away", "moon", aways, "Away recaps and compactions")}${ran > 60000 ? `<span class="ran">ran ${span(ran)}</span>` : ""}</div>
+      </button>
+      <div class="kids">${kids}</div>
+    </div>`;
+  }).join("");
+  const btns = state.promptsOnly
+    ? `<span class="count" style="margin-left:4px">outline only</span>`
+    : `<button class="mini-btn" data-a-all="open">Open all</button><button class="mini-btn" data-a-all="close">Close all</button>`;
+  return navHead("Messages", `${TURN_TOTAL} prompts`, btns) + fakeFilter + `<div class="nav-body">${html}</div>`;
+}
+
+/* ---------------- D: size tiers ---------------- */
+function renderD(m) {
+  const list = EVENTS.filter(visible);
+  let html = "";
+  let prev = null;
+  for (let i = 0; i < list.length; i++) {
+    const e = list[i];
+    if (prev && e.date - prev.date > GAP_MS) html += `<div class="divider">${span(e.date - prev.date)} later · ${e.time.split(" ")[0]}</div>`;
+    if (e.kind === "prompt") {
+      html += `<button class="tier-card${act(m, e.id)}" data-mock="${m}" data-id="${e.id}"><div class="h">${icon("user")}You · prompt ${e.turnNo} of ${TURN_TOTAL}<time>${e.time}</time></div><p>${esc(e.text)}</p></button>`;
+    } else if (e.kind === "notification") {
+      const group = [e];
+      while (list[i + 1] && list[i + 1].kind === "notification" && list[i + 1].date - list[i].date < GAP_MS) group.push(list[++i]);
+      const counts = new Map();
+      group.forEach((g) => counts.set(g.name, (counts.get(g.name) || 0) + 1));
+      html += `<div class="chips">${[...counts].map(([name, c]) => {
+        const firstOf = group.find((g) => g.name === name);
+        return `<button class="chip-mini" data-mock="${m}" data-id="${firstOf.id}" title="${esc(name)}">${icon("zap")}<span>${esc(name)}${c > 1 ? ` ×${c}` : ""}</span></button>`;
+      }).join("")}</div>`;
+    } else if (e.kind === "away" || e.kind === "compact") {
+      html += `<div class="divider away">${icon(KIND[e.kind].icon, "ic-xs")}${KIND[e.kind].label} · ${clock(e)}</div>`;
+      html += `<button class="away-line" data-mock="${m}" data-id="${e.id}"><span class="t">${esc(e.text)}</span></button>`;
+    } else {
+      html += `<button class="tline k-${e.kind}${act(m, e.id)}" data-mock="${m}" data-id="${e.id}">${icon(KIND[e.kind].icon)}<span class="t${e.kind === "command" ? " mono" : ""}">${esc(nicePreview(e))}</span><time>${clock(e)}</time></button>`;
+    }
+    prev = list[i];
+  }
+  return navHead("Messages", list.length) + fakeFilter + `<div class="nav-body">${html}</div>`;
+}
+
+/* ---------------- E: agent lanes ---------------- */
+const LX_YOU = 9, LX_CLAUDE = 23, LX_AGENT0 = 38, LX_STEP = 9;
+const GUT_W = LX_AGENT0 + LANE_COUNT * LX_STEP + 2;
+function gutter(e) {
+  let g = `<span class="lane-bg" style="left:${LX_YOU}px"></span><span class="lane-bg" style="left:${LX_CLAUDE}px"></span>`;
+  if (state.showAgents) {
+    for (const t of TASK_LIST) {
+      if (e.id < t.first || e.id > t.last) continue;
+      const x = LX_AGENT0 + t.lane * LX_STEP;
+      const top = e.id === t.first ? "50%" : "0";
+      const bottom = e.id === t.last ? "50%" : "0";
+      g += `<span class="span" style="left:${x}px;top:${top};bottom:${bottom};background:${t.color}"></span>`;
+      if (e.kind === "launch" && e.name === t.name) g += `<span class="node start" style="left:${x}px;border-color:${t.color}"></span>`;
+      if (e.kind === "notification" && e.name === t.name) g += `<span class="node" style="left:${x}px;background:${t.color}"></span>`;
+    }
+  }
+  if (e.kind === "prompt" || e.kind === "command") g += `<span class="node big you" style="left:${LX_YOU}px"></span>`;
+  if (e.kind === "reply") g += `<span class="node claude" style="left:${LX_CLAUDE}px"></span>`;
+  if (e.kind === "tools") g += `<span class="node sq" style="left:${LX_CLAUDE}px"></span>`;
+  if (e.kind === "away" || e.kind === "compact") g += `<span class="node dia" style="left:${LX_YOU}px"></span>`;
+  return `<span class="gut" style="width:${GUT_W}px">${g}</span>`;
+}
+function renderE(m) {
+  const list = EVENTS.filter(visible);
+  const rows = list.map((e) => {
+    const color = isAgentKind(e.kind) ? `style="color:${TASKS.get(e.name).color}"` : "";
+    let text = esc(nicePreview(e));
+    if (e.kind === "notification") text += ` · ${esc(e.status)}`;
+    return `<button class="lrow k-${e.kind}${act(m, e.id)}" data-mock="${m}" data-id="${e.id}">${gutter(e)}
+      <span class="lbody"><span class="row-top"><span class="klabel kc" ${color}>${esc(kindLabel(e))}</span><time>${e.time}</time></span><span class="l2" style="display:block">${text}</span></span></button>`;
+  }).join("");
+  const legend = `<div class="lane-legend"><span><i class="dot d-you"></i>You</span><span><i class="dot d-claude"></i>Claude</span>${state.showAgents ? `<span><i class="dot" style="background:var(--agent)"></i>one lane per running agent</span>` : ""}</div>`;
+  return navHead("Messages", list.length) + legend + `<div class="nav-body">${rows}</div>`;
+}
+
+/* ---------------- C: presets ---------------- */
+function renderC(m) {
+  const counts = {};
+  for (const e of EVENTS) counts[e.kind] = (counts[e.kind] || 0) + 1;
+  const list = EVENTS.filter((e) => cState.kinds.has(e.kind));
+  const seg = `<div class="seg" role="group" aria-label="Preset">${[["prompts", "Prompts"], ["conversation", "Conversation"], ["everything", "Everything"]]
+    .map(([k, l]) => `<button data-c-mode="${k}" aria-pressed="${cState.mode === k}">${l}</button>`).join("")}</div>`;
+  const chips = `<div class="kchips">${Object.keys(KIND).filter((k) => counts[k]).map((k) =>
+    `<button class="kchip k-${k}" data-c-kind="${k}" aria-pressed="${cState.kinds.has(k)}">${icon(KIND[k].icon)}${KIND[k].label}<b>${counts[k]}</b></button>`).join("")}</div>`;
+  return navHead("Messages", list.length) + seg + chips + `<div class="nav-body">${list.map((e) => glyphRow(e, m)).join("")}</div>`;
+}
+
+/* ---------------- render orchestration ---------------- */
+const RENDER = { today: renderToday, A: renderA, B: renderB, C: renderC, D: renderD, E: renderE };
+function renderMock(id, { reveal = false } = {}) {
+  const root = document.querySelector(`[data-mock-root="${id}"]`);
+  if (!root) return;
+  const prevScroll = root.querySelector(".nav-body")?.scrollTop ?? 0;
+  root.innerHTML = RENDER[id](id);
+  const body = root.querySelector(".nav-body");
+  if (!body) return;
+  const target = body.querySelector(".active");
+  if (reveal && target) body.scrollTop = Math.max(0, target.offsetTop - 70);
+  else body.scrollTop = prevScroll;
+}
+function renderAll(reveal) { for (const id of Object.keys(RENDER)) renderMock(id, { reveal }); }
+
+document.addEventListener("click", (ev) => {
+  const sw = ev.target.closest("[data-toggle]");
+  if (sw) {
+    const key = sw.dataset.toggle;
+    state[key] = !state[key];
+    sw.setAttribute("aria-pressed", String(state[key]));
+    renderAll(true);
+    return;
+  }
+  const all = ev.target.closest("[data-a-all]");
+  if (all) {
+    openTurns.clear();
+    if (all.dataset.aAll === "open") TURNS.forEach((t) => openTurns.add(t.n));
+    renderMock("A");
+    return;
+  }
+  const mode = ev.target.closest("[data-c-mode]");
+  if (mode) { cState.mode = mode.dataset.cMode; cState.kinds = new Set(C_PRESETS[cState.mode]); renderMock("C"); return; }
+  const kind = ev.target.closest("[data-c-kind]");
+  if (kind) {
+    const k = kind.dataset.cKind;
+    cState.kinds.has(k) ? cState.kinds.delete(k) : cState.kinds.add(k);
+    const match = Object.entries(C_PRESETS).find(([, ks]) => ks.length === cState.kinds.size && ks.every((x) => cState.kinds.has(x)));
+    cState.mode = match ? match[0] : "custom";
+    renderMock("C");
+    return;
+  }
+  const row = ev.target.closest("[data-mock][data-id]");
+  if (row) {
+    const m = row.dataset.mock;
+    active[m] = Number(row.dataset.id);
+    if (row.dataset.turn !== undefined && !state.promptsOnly) {
+      const n = Number(row.dataset.turn);
+      openTurns.has(n) ? openTurns.delete(n) : openTurns.add(n);
+    }
+    renderMock(m);
+  }
+});
+
+/* ---------------- static fills ---------------- */
+const counts = {};
+for (const e of EVENTS) counts[e.kind] = (counts[e.kind] || 0) + 1;
+const toolCalls = EVENTS.filter((e) => e.kind === "tools").reduce((s, e) => s + e.count, 0);
+document.querySelectorAll('[data-fill="prompts"]').forEach((n) => (n.textContent = counts.prompt));
+document.querySelectorAll('[data-fill="notifications"]').forEach((n) => (n.textContent = counts.notification));
+
+document.querySelector('[data-fill="kinds-table"]').innerHTML = Object.entries(KIND).map(([k, v]) => {
+  let count = counts[k] || 0;
+  if (k === "tools") count = `${toolCalls} calls in ${counts.tools} runs`;
+  if (k === "notification") count = `${counts.notification} from ${TASK_LIST.filter((t) => t.updates.length).length} tasks`;
+  const look = TODAY_LOOK[k];
+  const todayText = k === "skill"
+    ? "Never shown (dropped by the backend)"
+    : { you: "Blue dot (user)", claude: "Amber dot (assistant)", sys: "Grey dot (system)" }[look];
+  return `<tr class="k-${k}"><td><span class="kindcell kc">${icon(v.icon)}${v.label}</span></td><td class="muted">${v.stored}</td><td class="num">${count}</td>
+    <td><span style="display:inline-flex;align-items:center;gap:6px"><span class="dot d-${look}"></span>${todayText}</span></td><td class="muted">${v.look}</td></tr>`;
+}).join("");
+
+{
+  const n = EVENTS.find((e) => e.kind === "notification");
+  const before = `<div><div class="tag">Today</div><div class="nav"><div class="nav-body" style="overflow:visible"><button class="row"><div class="row-top"><span class="dot d-you"></span><span>#19</span><time>${clock(n)}</time></div><p>${esc(n.raw)}</p></button></div></div></div>`;
+  const after = `<div><div class="tag">Proposed</div><div class="nav"><div class="nav-body" style="overflow:visible">${glyphRow(n, "static")}</div></div></div>`;
+  document.querySelector('[data-fill="before-after"]').innerHTML = before + after;
+}
+{
+  const withUpdates = TASK_LIST.filter((t) => t.updates.length).sort((a, b) => b.updates.length - a.updates.length);
+  const top = withUpdates[0];
+  const agents = withUpdates.filter((t) => t.source === "agent").length;
+  document.querySelector('[data-fill="task-intro"]').textContent =
+    `The ${counts.notification} updates came from ${withUpdates.length} tasks: ${agents} agents and ${withUpdates.length - agents} background commands. One agent, "${top.name}", sent ${top.updates.length} on its own. One row per task, with a count, is enough for navigation.`;
+  document.querySelector('[data-fill="task-table"]').innerHTML = withUpdates.map((t) =>
+    `<tr><td>${esc(t.name)}</td><td class="muted">${t.source === "agent" ? "Agent" : "Command"}</td><td class="num">${t.updates.length}</td><td class="muted" style="white-space:nowrap">${t.updates[t.updates.length - 1].time}</td></tr>`).join("");
+}
+{
+  const gaps = [];
+  for (let i = 1; i < EVENTS.length; i++) {
+    const d = EVENTS[i].date - EVENTS[i - 1].date;
+    if (d > GAP_MS) gaps.push(`<li>${EVENTS[i - 1].time} to ${EVENTS[i].time}: ${span(d)}</li>`);
+  }
+  document.querySelector('[data-fill="gaps"]').innerHTML = gaps.join("");
+}
+
+renderAll(true);
+</script>
+</body>
+</html>
