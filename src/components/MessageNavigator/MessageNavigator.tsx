@@ -190,6 +190,9 @@ export const MessageNavigator: React.FC<MessageNavigatorProps> = ({
     getScrollElement: () => scrollElementRef.current,
     estimateSize,
     overscan: 5,
+    // Rows are measured, and a measured size belongs to its message, not its
+    // index, so a load-earlier prepend cannot hand it to another row.
+    getItemKey: (index) => entries[index]?.uuid ?? index,
     // Keep the row holding tabIndex=0 rendered after it scrolls away, as
     // the outline does; otherwise Tab cannot reach a row.
     rangeExtractor: (range) => includeIndex(defaultRangeExtractor(range), focusedIndex, range.count),
@@ -486,7 +489,11 @@ export const MessageNavigator: React.FC<MessageNavigatorProps> = ({
                     } else {
                       entryRefs.current.delete(entry.uuid);
                     }
+                    // Estimates only seed the layout; each row's real height
+                    // replaces its estimate once it renders.
+                    virtualizer.measureElement(element);
                   }}
+                  dataIndex={virtualItem.index}
                   style={{
                     position: "absolute",
                     top: 0,
